@@ -59,7 +59,6 @@ psl_silence()
 }
 
 
-
 ########################################
 # Features detection
 ########################################
@@ -72,6 +71,12 @@ psl_has_command()
 	psl_silence type "$@"
 }
 
+# Helper function for “psl_has_feature()”.
+_psl_has_feature_helper()
+{
+	(eval _psl_has_feature="$1")
+}
+
 # Checks whether the shell has a given features (variable substitutions, …).
 #
 # The code  passed must  be assignable to  a variable,  so you must  use command
@@ -80,18 +85,13 @@ psl_has_command()
 # psl_has_feature CODE
 psl_has_feature()
 {
-	helper()
-	{
-		(eval _psl_has_feature="$1")
-	}
-
 	# We cannot use directly the “psl_silence()” function on the code because it
 	# does not know how to run command in a subshell.
 	#
 	# We cannot either use “eval()” because we do not have any knowledge of what
 	# characters  are in  “$1”  (especially quotes)  so  the code  may be  illed
 	# formed, consequently we use an helper.
-	psl_silence helper "$1"
+	psl_silence _psl_has_feature_helper "$1"
 }
 
 
@@ -247,10 +247,10 @@ psl_set_log_level "$PSL_LOG_LEVEL"
 
 # Logs a message.
 #
-# _psl_log MESSAGE
+# _psl_log LEVEL MESSAGE
 _psl_log()
 {
-	psl_writeln "$(date): $1" >&2
+	psl_writeln "$(date) - $1: $2" >&2
 }
 
 # This should be used for programming purpose.
@@ -258,7 +258,7 @@ _psl_log()
 # psl_debug MESSAGE...
 psl_debug()
 {
-	[ $PSL_LOG_LEVEL -eq 3 ] && _psl_log "$@"
+	[ $PSL_LOG_LEVEL -eq 3 ] && _psl_log Debug "$@"
 }
 
 # This should be used to inform the user of something.
@@ -266,7 +266,7 @@ psl_debug()
 # psl_notice MESSAGE...
 psl_notice()
 {
-	[ $PSL_LOG_LEVEL -gt 1 ] && _psl_log "$@"
+	[ $PSL_LOG_LEVEL -gt 1 ] && _psl_log Notice "$@"
 }
 
 # This should be used to inform the user that something bad happened.
@@ -274,7 +274,7 @@ psl_notice()
 # psl_warning MESSAGE...
 psl_warning()
 {
-	[ $PSL_LOG_LEVEL -gt 0 ] && _psl_log "$@"
+	[ $PSL_LOG_LEVEL -gt 0 ] && _psl_log Warning "$@"
 }
 
 # This should be used to inform the user thats something fatal happened.
@@ -283,7 +283,7 @@ psl_warning()
 # psl_fatal MESSAGE...
 psl_fatal()
 {
-	_psl_log "$@"
+	_psl_log Fatal "$@"
 	exit 1
 }
 
@@ -461,6 +461,7 @@ psl_unload()
 	unset -f \
 		psl_silence \
 		psl_has_command \
+		_psl_has_feature_helper \
 		psl_has_feature \
 		psl_get_value \
 		psl_set_value \
@@ -469,16 +470,21 @@ psl_unload()
 		psl_writeln \
 		psl_readln \
 		psl_set_log_level \
+		_psl_log \
 		psl_debug \
 		psl_notice \
 		psl_warning \
 		psl_fatal \
+		psl_join \
 		psl_match \
 		psl_match_re \
 		psl_split \
 		psl_strlen \
 		psl_strstr \
-		psl_subst
+		psl_subst \
+		psl_unload
 
-	unset -v PSL_LOADED
+	unset -v \
+		PSL_LOADED \
+		PSL_LOG_LEVEL
 }
