@@ -326,13 +326,13 @@ if psl_has_feature '$([[ word =~ . ]])'
 then
 	psl_match_re()
 	{
-		! [[ "$2" =~ $1 ]]
+		[[ "$2" =~ $1 ]]
 	}
 elif psl_has_command grep
 then
 	psl_match_re()
 	{
-		! printf '%s' "$1" | grep --extended-regexp --quiet --regexp="$1"
+		printf '%s' "$1" | grep --extended-regexp --quiet --regexp="$1"
 	}
 else
 	psl_warning 'psl_match_re: failed pre-requisites'
