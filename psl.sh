@@ -1,17 +1,25 @@
-# This file is part of the Portable Shell Library.
+##
+# Portable Shell Library v0.1
+#
+# Julien Fontanet <julien.fontanet@isonoe.net>
+##
 
+##
+# This file is part of the Portable Shell Library.
+#
 # The Portable  Shell Library is free  software: you can  redistribute it and/or
 # modify it  under the terms of the  GNU General Public License  as published by
 # the Free  Software Foundation, either  version 3 of  the License, or  (at your
 # option) any later version.
-
+#
 # The Portable Shell Library is distributed  in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
 # or FITNESS FOR  A PARTICULAR PURPOSE.  See the GNU  General Public License for
 # more details.
-
+#
 # You should have  received a copy of the GNU General  Public License along with
 # the Portable Shell Library.  If not, see <http://www.gnu.org/licenses/>.
+##
 
 ########################################
 # Include guard
@@ -246,10 +254,14 @@ psl_set_log_level "$PSL_LOG_LEVEL"
 
 # Logs a message.
 #
-# _psl_log LEVEL MESSAGE
+# This implementation is  deliberatly stupid, if you want  more advanced feature
+# such as including the date or use syslog, feel free to overwrite this function
+# with one of your own.
+#
+# _psl_log LEVEL MESSAGE...
 _psl_log()
 {
-	psl_writeln "$(date) - $1: $2" >&2
+	psl_writeln "$@" >&2
 }
 
 # This should be used for programming purpose.
