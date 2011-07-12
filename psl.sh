@@ -134,7 +134,7 @@ then
 		# use this variable.
 		_psl_get_value_ref=$2
 
-		set_value $1 "${!_psl_get_value_ref}"
+		psl_set_value $1 "${!_psl_get_value_ref}"
 	}
 else
 	psl_get_value()
@@ -261,6 +261,7 @@ psl_set_log_level "$PSL_LOG_LEVEL"
 # _psl_log LEVEL MESSAGE...
 _psl_log()
 {
+	shift
 	psl_writeln "$@" >&2
 }
 
