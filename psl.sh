@@ -463,6 +463,18 @@ else
 	}
 fi
 
+# Quotes a string to be used in the shell.
+#
+# psl_quote @RESULT STRING
+psl_quote()
+{
+	local _psl_quote_result
+
+	psl_subst _psl_quote_result "$2" \' "'\\''"
+
+	psl_set_value $1 "'$_psl_quote_result'"
+}
+
 
 ########################################
 # Utilities
@@ -494,6 +506,7 @@ psl_unload()
 		psl_strlen \
 		psl_strstr \
 		psl_subst \
+		psl_quote \
 		psl_unload
 
 	unset -v \
