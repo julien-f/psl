@@ -96,8 +96,8 @@ psl_has_feature()
 	# does not know how to run command in a subshell.
 	#
 	# We cannot either use “eval()” because we do not have any knowledge of what
-	# characters  are in  “$1”  (especially quotes)  so  the code  may be  illed
-	# formed, consequently we use an helper.
+	# characters are in “$1” (especially  quotes) so the code may be ill-formed,
+	# consequently we use a helper.
 	psl_silence _psl_has_feature_helper "$1"
 }
 
