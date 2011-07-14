@@ -1,7 +1,11 @@
 ##
-# Portable Shell Library v0.1
+# Portable Shell Library v0.1.1
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
+#
+# 2011-07-14 - v0.1.1
+# - psl_write{,ln}() have been renamed to psl_print{,ln}().
+# - New function: psl_first_match().
 ##
 
 ##
@@ -195,23 +199,23 @@ psl_get_raw_output()
 # Input/output
 ########################################
 
-# Writes each arguments on the standard output.
+# Prints each arguments on the standard output.
 #
-# psl_write STRING...
-psl_write()
+# psl_print STRING...
+psl_print()
 {
 	printf '%s' "$@"
 }
 
-# Writes each arguments followed by a new line on the standard output.
+# Prints each arguments followed by a new line on the standard output.
 #
-# psl_writeln STRING...
-psl_writeln()
+# psl_println STRING...
+psl_println()
 {
 	printf '%s\n' "$@"
 }
 
-# Read a line from the standard input (the end of line, if any, is discarded).
+# Reads a line from the standard input (the end of line, if any, is discarded).
 #
 # psl_readln @LINE
 psl_readln()
@@ -262,7 +266,7 @@ psl_set_log_level "$PSL_LOG_LEVEL"
 _psl_log()
 {
 	shift
-	psl_writeln "$@" >&2
+	psl_println "$@" >&2
 }
 
 # This should be used for programming purpose.
@@ -480,6 +484,35 @@ psl_quote()
 # Utilities
 ########################################
 
+# Prints the first entry for which  the given command returns 0, if none entries
+# match, simply returns 1.
+#
+# Note that the command  is run in the current shell and,  as a consequence, may
+# have some side effects.
+#
+# Example:
+#   psl_first_match 'test -f'
+#
+# psl_first_match COMMAND ENTRY...
+psl_first_match()
+{
+	local _psl_first_match_command _psl_first_match_entry
+
+	_psl_first_match_command=$1
+	shift
+
+	for _psl_first_match_entry
+	do
+		if eval $_psl_first_match_command '"$_psl_first_match_entry"'
+		then
+			psl_print "$_psl_first_match_entry"
+			return
+		fi
+	done
+
+	return 1
+}
+
 psl_unload()
 {
 	unset -f \
@@ -490,9 +523,9 @@ psl_unload()
 		psl_get_value \
 		psl_set_value \
 		psl_get_raw_output \
-		psl_write \
-		psl_writeln \
-		psl_readln \
+		psl_print \
+		psl_println \
+		psl_read_line \
 		psl_set_log_level \
 		_psl_log \
 		psl_debug \
@@ -507,6 +540,7 @@ psl_unload()
 		psl_strstr \
 		psl_subst \
 		psl_quote \
+		psl_first_match \
 		psl_unload
 
 	unset -v \
