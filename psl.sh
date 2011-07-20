@@ -3,6 +3,15 @@
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2011-07-20 - v0.2
+# - Big rewrite, new  philosophy: if a function takes or  returns a single value
+#   and if  it makes sense  for this function  to be chained with  others, these
+#   values will go through the “$psl”  variable. It should be more efficient and
+#   lead to clearer codes.
+# - Four  new  functions:  “psl_ltrim()”,  “psl_rtrim()”,  “psl_basename()”  and
+#   “psl_dirname”.   The last  two should  be  more efficient  than calling  the
+#   corresponding external programs.
+#
 # 2011-07-14 - v0.1.1
 # - psl_write{,ln}() have been renamed to psl_print{,ln}().
 # - New function: psl_first_match().
@@ -110,23 +119,23 @@ psl_has_feature()
 # Variable management
 ########################################
 
-# Returns the value of a variable.
+# Sets “$psl” to the value of a variable.
 #
 # This function allows you to get the  value of a variable which you do not know
 # the name before execution.
 #
-# The behavior is undefined if VAR is not a valid variable name.
+# The behavior is undefined if “$VAR” is not a valid variable name.
 #
-# psl_get_value @VALUE VAR
+# psl_get_value VAR
 if psl_has_command nameref
 then
 	psl_get_value()
 	{
 		local _psl_get_value_ref
 
-		nameref _psl_get_value_ref=$2
+		nameref _psl_get_value_ref=$1
 
-		psl_set_value $1 "$_psl_get_value_ref"
+		psl=$_psl_get_value_ref
 	}
 elif psl_has_feature '${!VAR}'
 then
@@ -138,60 +147,51 @@ then
 		# use this variable.
 		_psl_get_value_ref=$2
 
-		psl_set_value $1 "${!_psl_get_value_ref}"
+		psl=${!_psl_get_value_ref}
 	}
 else
 	psl_get_value()
 	{
-		eval $1='$'$2
+		eval psl=\$$1
 	}
 fi
 
-# Assigns a value to a variable.
+# Assigns the value of “$psl” to a variable.
 #
 # This function  allows you to assigns  a value to  a variable which you  do not
 # know the name before execution (through another variable).
 #
-# The behavior is undefined if VAR is not a valid variable name.
+# The behavior is undefined if “$VAR” is not a valid variable name.
 #
-# psl_set_value VAR VALUE
+# psl_set_value VAR
 if psl_has_command nameref
 then
 	psl_set_value()
 	{
 		local _psl_set_value_ref
 
-		nameref _psl_set_value_ref="$1"
+		nameref _psl_set_value_ref=$1
 
-		_psl_set_value_ref="$2"
+		_psl_set_value_ref=$psl
 	}
 else
 	psl_set_value()
 	{
-		eval $1'=$2'
+		eval $1='$psl'
 	}
 fi
 
-# Saves  the  raw  output,  preserving  any  end-of-lines,  of  a  command  into
+# Saves in “$psl” the raw output, preserving any end-of-lines, of a command into
 # a variable.
 #
-# Warning:
-#   Due    to    the   implementation,    the    variable    name   cannot    be
-#   “_psl_get_raw_output_var” nor “_psl_get_raw_output_val”.
-#
-# psl_get_raw_output @OUTPUT COMMAND [ARG...]
+# psl_get_raw_output COMMAND [ARG...]
 psl_get_raw_output()
 {
-	local _psl_get_raw_output_var _psl_get_raw_output_val
-
-	_psl_get_raw_output_var=$1
-	shift
-
 	# We add a dummy character which will protect a possible end-of-line.
-	_psl_get_raw_output_val=$("$@"; printf _)
+	psl=$("$@"; printf _)
 
 	# Removes the dummy character.
-	psl_set_value "$_psl_get_raw_output_var" "${_psl_get_raw_output_val%_}"
+	psl=${psl%_}
 }
 
 
@@ -217,19 +217,16 @@ psl_println()
 
 # Reads a line from the standard input (the end of line, if any, is discarded).
 #
-# psl_readln @LINE
+# psl_readln
 psl_readln()
 {
-	IFS= read -r -- $1
+	IFS= read -r -- psl
 }
 
 
 ########################################
 # Debugging
 ########################################
-
-# The “PSL_LOG_LEVEL”  variable is  used to determine  which messages  should be
-# logged.
 
 # Changes the log level.
 #
@@ -246,15 +243,23 @@ psl_set_log_level()
 {
 	case "$1" in
 		[0-3])
-			PSL_LOG_LEVEL=$1
+			_PSL_LOG_LEVEL=$1
 			;;
 		*)
-			PSL_LOG_LEVEL=2
+			_PSL_LOG_LEVEL=2
 	esac
 }
 
-# Runs it a first time to ensure that “PSL_LOG_LEVEL” has a correct value.
-psl_set_log_level "$PSL_LOG_LEVEL"
+# Sets “$psl” to the current log level.
+#
+# See “psl_set_log_level()” for more information.
+psl_get_log_level()
+{
+	psl=$_PSL_LOG_LEVEL
+}
+
+# Runs it a first time to ensure that “_PSL_LOG_LEVEL” has a correct value.
+psl_set_log_level "$_PSL_LOG_LEVEL"
 
 # Logs a message.
 #
@@ -274,7 +279,7 @@ _psl_log()
 # psl_debug MESSAGE...
 psl_debug()
 {
-	[ $PSL_LOG_LEVEL -eq 3 ] && _psl_log Debug "$@"
+	[ $_PSL_LOG_LEVEL -eq 3 ] && _psl_log Debug "$@"
 }
 
 # This should be used to inform the user of something.
@@ -282,7 +287,7 @@ psl_debug()
 # psl_notice MESSAGE...
 psl_notice()
 {
-	[ $PSL_LOG_LEVEL -gt 1 ] && _psl_log Notice "$@"
+	[ $_PSL_LOG_LEVEL -gt 1 ] && _psl_log Notice "$@"
 }
 
 # This should be used to inform the user that something bad happened.
@@ -290,7 +295,7 @@ psl_notice()
 # psl_warning MESSAGE...
 psl_warning()
 {
-	[ $PSL_LOG_LEVEL -gt 0 ] && _psl_log Warning "$@"
+	[ $_PSL_LOG_LEVEL -gt 0 ] && _psl_log Warning "$@"
 }
 
 # This should be used to inform the user thats something fatal happened.
@@ -308,26 +313,28 @@ psl_fatal()
 # String operations
 ########################################
 
-# Joins strings with a given character separator.
-#
-# psl_join @RESULT SEP STRING...
-psl_join()
+# This helper  is used because  we really cannot  afford to change the  value of
+# “$IFS” is the “local” command is not correctly supported.
+_psl_join_helper()
 {
-	local _psl_join_var
-
-	_psl_join_var=$1
-	IFS=$2
-	shift 2
-
-	psl_set_value $_psl_join_var "$*"
+	shift
+	psl=$*
 }
 
-# Checks whether a string matches a given pattern.
+# Joins strings with a given character separator.
 #
-# psl_match PATTERN STRING
+# psl_join SEP STRING...
+psl_join()
+{
+	IFS=$1 _psl_join_helper "$@"
+}
+
+# Checks whether “$psl” matches a given pattern.
+#
+# psl_match PATTERN
 psl_match()
 {
-	case "$2" in
+	case "$psl" in
 		$1)
 			;;
 		*)
@@ -335,101 +342,108 @@ psl_match()
 	esac
 }
 
-# Checks whether a string matches a regular expression.
+# Checks whether “$psl” matches a regular expression.
 #
-# psl_match_re REGEX STRING
+# psl_match_re REGEX
 if psl_has_feature '$([[ word =~ . ]])'
 then
 	psl_match_re()
 	{
-		[[ "$2" =~ $1 ]]
+		[[ "$psl" =~ $1 ]]
 	}
 elif psl_has_command grep
 then
 	psl_match_re()
 	{
-		printf '%s' "$1" | grep --extended-regexp --quiet --regexp="$1"
+		psl_print "$psl" | grep --extended-regexp --quiet --regexp="$1"
 	}
 else
 	psl_warning 'psl_match_re: failed pre-requisites'
 fi
 
-# Splits a string by character(s).
+# Splits “$psl” by character(s).
 #
 # Warning:
-#   Due to the implementation, the variables used cannot be “_psl_split_IFS” nor
-#   “_psl_split_string”.
+#   Due to the implementation, the variables used cannot be “_psl_split_IFS”.
 #
-# psl_split STRING DELIMITERS @FIELD...
+# psl_split DELIMITERS @FIELD...
 psl_split()
 {
-	local _psl_split_IFS _psl_split_string
+	local _psl_split_IFS
 
-	_psl_split_string="$1"
-	_psl_split_IFS="$2"
-	shift 2
+	_psl_split_IFS="$1"
+	shift
 
 	IFS="$_psl_split_IFS" read -r -- "$@" <<EOF
-$_psl_split_string
+$psl
 EOF
 }
 
-# Returns the length of the string.
+# Returns the length of “$psl”.
 #
-# For multibytes encoded  strings, the result may either be  the number of bytes
-# or the number of characters.
+# For multibytes encoding,  the result may either be the number  of bytes or the
+# number of characters.
 #
-# Do not use this function to check if a string is null, use the standard “test”
+# Do not use this function to check if “$psl” is null, use the standard “test”
 # command.
 #
-# psl_strlen @LENGTH STRING
+# psl_strlen
 if psl_has_feature '${#VAR}'
 then
 	psl_strlen()
 	{
-		psl_set_value $1 ${#2}
+		psl=${#psl}
 	}
 elif psl_has_command expr
 then
 	psl_strlen()
 	{
-		psl_set_value $1 $(expr length "$1")
+		psl=$(expr length "$psl")
 	}
 elif psl_has_command wc
 then
 	psl_strlen()
 	{
-		psl_set_value $(printf '%s' "$1" | wc -c)
+		psl=$(psl_print "$psl" | wc -c)
 	}
 else
 	psl_warning 'psl_strlen: failed pre-requisites'
 fi
 
-# Checks whether the string “needle” is in the string “haystack”.
+# Checks whether “$NEEDLE” is in “$psl”.
 #
-# psl_strstr HAYSTACK NEEDLE
+# psl_strstr NEEDLE
 psl_strstr()
 {
-	[ -z "$2" ] && return
-
-	[ -n "$1" ] && [ -z "${1##*"$2"*}" ]
+	# It  is  difficult  to  use  “psl_match()”  because  “NEEDLE”  may  contain
+	# metacharacters.
+	case "$psl" in
+		*"$1"*)
+			;;
+		*)
+			return 1
+	esac
 }
 
-# Replaces the substring SUBSTRING in string by REPLACEMENT.
+# Replaces “$SUBSTRING” by “$REPLACEMENT” in “$psl”.
 #
 # If the “-a” option is passed, replace every occurence.
 #
-# subst [ -a ] @RESULT STRING SUBSTRING REPLACEMENT
+# The “--” flag indicates the end of the options, i.e. it allows you to use “-a”
+# as the substring to be replaced.
+#
+# subst [-a] [--] SUBSTRING REPLACEMENT
 if psl_has_feature '${VAR/pattern/string}'
 then
 	psl_subst()
 	{
 		if [ "$1" = '-a' ]
 		then
-			shift
-			psl_set_value $1 "${2//"$3"/$4}"
+			[ "$1" = -- ] && shift
+			psl=${psl//"$2"/$3}
 		else
-			psl_set_value $1 "${2/"$3"/$4}"
+			[ "$1" = -- ] && shift
+			psl=${psl/"$1"/$2}
 		fi
 	}
 else
@@ -442,41 +456,117 @@ else
 			shift
 		}
 
-		_psl_subst_suf="$2"
+		[ "$1" = -- ] && shift
 
-		_psl_subst_pref="${_psl_subst_suf%%"$3"*}"
-		[ "$_psl_subst_pref" = "$_psl_subst_suf" ] && {
-			# No match
-			psl_set_value $1 "$_psl_subst_suf"
-			return 1
-		}
+		_psl_subst_suf=$psl
 
-		_psl_subst_suf="${_psl_subst_suf#*"$3"}"
-		_psl_subst_str="$_psl_subst_pref$4"
+		_psl_subst_pref=${_psl_subst_suf%%"$1"*}
+
+		# No match.
+		[ "$_psl_subst_pref" = "$_psl_subst_suf" ] && return 1
+
+		_psl_subst_suf=${_psl_subst_suf#*"$1"}
+		_psl_subst_str=$_psl_subst_pref$2
 
 		[ "$_psl_subst_all" ] && while {
-			_psl_subst_pref="${_psl_subst_suf%%"$3"*}"
+			_psl_subst_pref=${_psl_subst_suf%%"$1"*}
 			[ "$_psl_subst_pref" != "$_psl_subst_suf" ]
 		}
 		do
-			_psl_subst_suf="${_psl_subst_suf#*"$3"}"
-			_psl_subst_str="$_psl_subst_str$_psl_subst_pref$4"
+			_psl_subst_suf=${_psl_subst_suf#*"$1"}
+			_psl_subst_str=$_psl_subst_str$_psl_subst_pref$2
 		done
 
-		psl_set_value $1 "$_psl_subst_str$_psl_subst_suf"
+		psl=$_psl_subst_str$_psl_subst_suf
 	}
 fi
 
 # Quotes a string to be used in the shell.
 #
-# psl_quote @RESULT STRING
+# psl_quote
 psl_quote()
 {
-	local _psl_quote_result
+	psl_subst -a \' "'\\''"
 
-	psl_subst _psl_quote_result "$2" \' "'\\''"
+	psl="'$psl'"
+}
 
-	psl_set_value $1 "'$_psl_quote_result'"
+# Removes every substring at the begining of “$psl” which matches “$PATTERN”.
+#
+# psl_ltrim PATTERN
+psl_ltrim()
+{
+	local _psl_ltrim_tmp
+
+	[ $# -eq 2 ] && psl=$2
+
+	while _psl_ltrim_tmp=${psl#$1}; [ "$_psl_ltrim_tmp" != "$psl" ]
+	do
+		psl=$_psl_ltrim_tmp
+	done
+}
+
+# Removes every substring at the end of “$psl” which matches “$PATTERN”.
+#
+# psl_rtrim PATTERN
+psl_rtrim()
+{
+	local _psl_rtrim_tmp
+
+	while _psl_rtrim_tmp=${psl%$1}; [ "$_psl_rtrim_tmp" != "$psl" ]
+	do
+		psl=$_psl_rtrim_tmp
+	done
+}
+
+
+########################################
+# Path manipulation
+########################################
+
+# Faster equivalent to the “basename” command.
+#
+# This function  does not manage the  suffix removal (because it  is trivial but
+# costly if we do it unnecessarily).
+#
+# psl_basename
+psl_basename()
+{
+	# Empty parameter → empty result.
+	[ "$psl" ] || return
+
+	# Remove all traling slashes.
+	psl_rtrim /
+
+	# If empty → there were only slashes.
+	[ "$psl" ] || { psl=/; return; }
+
+	# Removes the directory part.
+	psl=${psl##*/}
+}
+
+# Faster equivalent to the “dirname” command.
+#
+# This function does not handle any options.
+#
+# psl_dirname
+psl_dirname()
+{
+	local _psl_dirname_tmp
+
+	# Empty special case.
+	[ "$psl" ] || { psl=.; return; }
+
+	_psl_dirname_tmp=$psl
+	psl=${_psl_dirname_tmp%/*}
+
+	psl_rtrim /
+
+	# If no match → there were no directory.
+	[ "$_psl_dirname_tmp" = "$psl" ] && { psl=.; return; }
+
+	# If empty → this is the root.
+	[ "$psl" ] || { psl=/; return; }
 }
 
 
@@ -484,7 +574,7 @@ psl_quote()
 # Utilities
 ########################################
 
-# Prints the first entry for which  the given command returns 0, if none entries
+# Finds the first  entry for which the given command returns  0, if none entries
 # match, simply returns 1.
 #
 # Note that the command  is run in the current shell and,  as a consequence, may
@@ -505,7 +595,7 @@ psl_first_match()
 	do
 		if eval $_psl_first_match_command '"$_psl_first_match_entry"'
 		then
-			psl_print "$_psl_first_match_entry"
+			psl=$_psl_first_match_entry
 			return
 		fi
 	done
@@ -525,13 +615,15 @@ psl_unload()
 		psl_get_raw_output \
 		psl_print \
 		psl_println \
-		psl_read_line \
+		psl_readln \
 		psl_set_log_level \
+		psl_get_log_level \
 		_psl_log \
 		psl_debug \
 		psl_notice \
 		psl_warning \
 		psl_fatal \
+		_psl_join_helper \
 		psl_join \
 		psl_match \
 		psl_match_re \
@@ -540,10 +632,15 @@ psl_unload()
 		psl_strstr \
 		psl_subst \
 		psl_quote \
+		psl_ltrim \
+		psl_rtrim \
+		psl_basename \
+		psl_dirname \
 		psl_first_match \
 		psl_unload
 
 	unset -v \
 		PSL_LOADED \
-		PSL_LOG_LEVEL
+		_PSL_LOG_LEVEL \
+		psl
 }
