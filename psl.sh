@@ -1,8 +1,11 @@
 ##
-# Portable Shell Library v0.1.1
+# Portable Shell Library v0.2.1
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2011-07-21 - v0.2.1
+# - New function: “psl_substr()”.
+# - Minor fixes.
 # 2011-07-20 - v0.2
 # - Big rewrite, new  philosophy: if a function takes or  returns a single value
 #   and if  it makes sense  for this function  to be chained with  others, these
@@ -398,7 +401,7 @@ elif psl_has_command expr
 then
 	psl_strlen()
 	{
-		psl=$(expr length "$psl")
+		psl=$(expr length + "$psl")
 	}
 elif psl_has_command wc
 then
@@ -498,8 +501,6 @@ psl_ltrim()
 {
 	local _psl_ltrim_tmp
 
-	[ $# -eq 2 ] && psl=$2
-
 	while _psl_ltrim_tmp=${psl#$1}; [ "$_psl_ltrim_tmp" != "$psl" ]
 	do
 		psl=$_psl_ltrim_tmp
@@ -518,6 +519,27 @@ psl_rtrim()
 		psl=$_psl_rtrim_tmp
 	done
 }
+
+# Extracts a substring from “$psl”.
+#
+# The position is counted from 0.
+#
+# psl_substr POS LENGTH
+if psl_has_feature '${VAR:1:1}'
+then
+	psl_substr()
+	{
+		psl=${psl:$1:$2}
+	}
+elif psl_has_command expr
+then
+	psl_substr()
+	{
+		psl_get_raw_output expr substr + "$psl" \( "$1" + 1 \) "$2"
+	}
+else
+	psl_warning 'psl_substr: failed pre-requisites'
+fi
 
 
 ########################################
@@ -634,6 +656,7 @@ psl_unload()
 		psl_quote \
 		psl_ltrim \
 		psl_rtrim \
+		psl_substr \
 		psl_basename \
 		psl_dirname \
 		psl_first_match \
