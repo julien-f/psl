@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.1
+# Portable Shell Library v0.2.2
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2011-07-22 - v0.2.2
+# - Better handling of local variables with the “psl_local” variable.
 # 2011-07-21 - v0.2.1
 # - New function: “psl_substr()”.
 # - Minor fixes.
@@ -50,22 +52,6 @@ then
 	return
 fi
 PSL_LOADED=1
-
-
-########################################
-# Compatibility
-########################################
-
-# Some shells, such as ksh, does not support the “local” keyword.
-#
-# This definition does strictly nothing, it might hide some errors.
-if ! type local > /dev/null 2>&1
-then
-	local()
-	{
-		:
-	}
-fi
 
 
 ########################################
@@ -119,6 +105,27 @@ psl_has_feature()
 
 
 ########################################
+# Compatibility
+########################################
+
+# We  cannot  directly use  the  “local” command  because  it  is not  uniformly
+# used. Instead we  use the variable “$psl_local” to  store the more appropriate
+# command, if none are found, all the variables are declared globally.
+if psl_has_command declare
+then
+	psl_local=declare
+elif psl_has_command local
+then
+	psl_local=local
+elif psl_has_command typeset
+then
+	psl_local=typeset
+else
+	psl_local=:
+fi
+
+
+########################################
 # Variable management
 ########################################
 
@@ -134,7 +141,7 @@ if psl_has_command nameref
 then
 	psl_get_value()
 	{
-		local _psl_get_value_ref
+		$psl_local _psl_get_value_ref
 
 		nameref _psl_get_value_ref=$1
 
@@ -144,7 +151,7 @@ elif psl_has_feature '${!VAR}'
 then
 	psl_get_value()
 	{
-		local _psl_get_value_ref
+		$psl_local _psl_get_value_ref
 
 		# ksh does not support (even parsing!)  “${!1}” so to hide the error, we
 		# use this variable.
@@ -171,7 +178,7 @@ if psl_has_command nameref
 then
 	psl_set_value()
 	{
-		local _psl_set_value_ref
+		$psl_local _psl_set_value_ref
 
 		nameref _psl_set_value_ref=$1
 
@@ -317,7 +324,7 @@ psl_fatal()
 ########################################
 
 # This helper  is used because  we really cannot  afford to change the  value of
-# “$IFS” is the “local” command is not correctly supported.
+# “$IFS” if the “$psl_local” command is not correctly supported.
 _psl_join_helper()
 {
 	shift
@@ -372,7 +379,7 @@ fi
 # psl_split DELIMITERS @FIELD...
 psl_split()
 {
-	local _psl_split_IFS
+	$psl_local _psl_split_IFS
 
 	_psl_split_IFS="$1"
 	shift
@@ -452,7 +459,7 @@ then
 else
 	psl_subst()
 	{
-		local _psl_subst_all _psl_subst_str _psl_subst_pref _psl_subst_suf
+		$psl_local _psl_subst_all _psl_subst_str _psl_subst_pref _psl_subst_suf
 
 		[ "$1" = '-a' ] && {
 			_psl_subst_all=1
@@ -499,7 +506,7 @@ psl_quote()
 # psl_ltrim PATTERN
 psl_ltrim()
 {
-	local _psl_ltrim_tmp
+	$psl_local _psl_ltrim_tmp
 
 	while _psl_ltrim_tmp=${psl#$1}; [ "$_psl_ltrim_tmp" != "$psl" ]
 	do
@@ -512,7 +519,7 @@ psl_ltrim()
 # psl_rtrim PATTERN
 psl_rtrim()
 {
-	local _psl_rtrim_tmp
+	$psl_local _psl_rtrim_tmp
 
 	while _psl_rtrim_tmp=${psl%$1}; [ "$_psl_rtrim_tmp" != "$psl" ]
 	do
@@ -574,7 +581,7 @@ psl_basename()
 # psl_dirname
 psl_dirname()
 {
-	local _psl_dirname_tmp
+	$psl_local _psl_dirname_tmp
 
 	# Empty special case.
 	[ "$psl" ] || { psl=.; return; }
@@ -608,7 +615,7 @@ psl_dirname()
 # psl_first_match COMMAND ENTRY...
 psl_first_match()
 {
-	local _psl_first_match_command _psl_first_match_entry
+	$psl_local _psl_first_match_command _psl_first_match_entry
 
 	_psl_first_match_command=$1
 	shift
@@ -665,5 +672,6 @@ psl_unload()
 	unset -v \
 		PSL_LOADED \
 		_PSL_LOG_LEVEL \
-		psl
+		psl \
+		psl_local
 }
