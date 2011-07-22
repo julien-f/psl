@@ -1,8 +1,13 @@
 ##
-# Portable Shell Library v0.2.2
+# Portable Shell Library v0.2.3
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2011-07-22 - v0.2.3
+# - “psl_first_match()”  has been  replaced by  “psl_foreach()” which  is  a bit
+#   trickier to use (at least for the same things) but much more powerful.
+# - “$psl_local” is now read-only.
+# - A bug has been fixed in the Bash implementation of “psl_get_value()”.
 # 2011-07-22 - v0.2.2
 # - Better handling of local variables with the “psl_local” variable.
 # 2011-07-21 - v0.2.1
@@ -83,7 +88,7 @@ psl_has_command()
 # Helper function for “psl_has_feature()”.
 _psl_has_feature_helper()
 {
-	(eval _psl_has_feature="$1")
+	(eval "_psl_has_feature=$1")
 }
 
 # Checks whether the shell has a given features (variable substitutions, …).
@@ -607,33 +612,34 @@ psl_dirname()
 # Utilities
 ########################################
 
-# Finds the first  entry for which the given command returns  0, if none entries
-# match, simply returns 1.
+# Evaluates a command for a list of entries.
 #
-# Note that the command  is run in the current shell and,  as a consequence, may
-# have some side effects.
+# The evaluation  continues while the  command returns 0.  “psl_foreach” returns
+# 0 if it  iterates until the end  of the list, otherwise it  returns the return
+# value of the command which stopped it.
 #
-# Example:
-#   psl_first_match 'test -f'
+# When the command is evaluated, “$psl”  is positioned to the current entry.
 #
-# psl_first_match COMMAND ENTRY...
-psl_first_match()
+# Examples:
+#
+#   # Selects the first entry which is a file.
+#   psl_foreach '! test -f "$psl"' *
+#
+#   # Selects the first entry which ends with “.txt”.
+#   psl_foreach '! psl_match "*.txt"' *
+#
+# psl_foreach COMMAND ENTRY...
+psl_foreach()
 {
-	$psl_local _psl_first_match_command _psl_first_match_entry
+	$psl_local _psl_foreach_command
 
-	_psl_first_match_command=$1
+	_psl_foreach_command=$1
 	shift
 
-	for _psl_first_match_entry
+	for psl
 	do
-		if eval $_psl_first_match_command '"$_psl_first_match_entry"'
-		then
-			psl=$_psl_first_match_entry
-			return
-		fi
+		eval "$_psl_foreach_command" || return
 	done
-
-	return 1
 }
 
 # Cleans the shell from almost all PSL's functions and variables.
@@ -678,7 +684,7 @@ psl_unload()
 		psl_substr \
 		psl_basename \
 		psl_dirname \
-		psl_first_match \
+		psl_foreach \
 		psl_unload
 
 	unset -v \
