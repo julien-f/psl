@@ -159,7 +159,7 @@ then
 
 		# ksh does not support (even parsing!)  “${!1}” so to hide the error, we
 		# use this variable.
-		_psl_get_value_ref=$2
+		_psl_get_value_ref=$1
 
 		psl=${!_psl_get_value_ref}
 	}
