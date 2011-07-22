@@ -282,7 +282,7 @@ psl_set_log_level "$_PSL_LOG_LEVEL"
 
 # Logs a message.
 #
-# This implementation is  deliberatly stupid, if you want  more advanced feature
+# This implementation is deliberately stupid,  if you want more advanced feature
 # such as including the date or use syslog, feel free to overwrite this function
 # with one of your own.
 #
@@ -317,7 +317,7 @@ psl_warning()
 	[ $_PSL_LOG_LEVEL -gt 0 ] && _psl_log Warning "$@"
 }
 
-# This should be used to inform the user thats something fatal happened.
+# This should be used to inform the user that something fatal happened.
 # This function stops the script.
 #
 # psl_fatal MESSAGE...
@@ -446,7 +446,7 @@ psl_strstr()
 
 # Replaces “$SUBSTRING” by “$REPLACEMENT” in “$psl”.
 #
-# If the “-a” option is passed, replace every occurence.
+# If the “-a” option is passed, replace every occurrence.
 #
 # The “--” flag indicates the end of the options, i.e. it allows you to use “-a”
 # as the substring to be replaced.
@@ -510,7 +510,7 @@ psl_quote()
 	psl="'$psl'"
 }
 
-# Removes every substring at the begining of “$psl” which matches “$PATTERN”.
+# Removes every substring at the beginning of “$psl” which matches “$PATTERN”.
 #
 # psl_ltrim PATTERN
 psl_ltrim()
