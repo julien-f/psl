@@ -111,17 +111,21 @@ psl_has_feature()
 # We  cannot  directly use  the  “local” command  because  it  is not  uniformly
 # used. Instead we  use the variable “$psl_local” to  store the more appropriate
 # command, if none are found, all the variables are declared globally.
-if psl_has_command declare
+if ! [ "$psl_local" ]
 then
-	psl_local=declare
-elif psl_has_command local
-then
-	psl_local=local
-elif psl_has_command typeset
-then
-	psl_local=typeset
-else
-	psl_local=:
+	if psl_has_command declare
+	then
+		psl_local=declare
+	elif psl_has_command local
+	then
+		psl_local=local
+	elif psl_has_command typeset
+	then
+		psl_local=typeset
+	else
+		psl_local=:
+	fi
+	readonly psl_local
 fi
 
 
@@ -632,6 +636,14 @@ psl_first_match()
 	return 1
 }
 
+# Cleans the shell from almost all PSL's functions and variables.
+#
+# Local  variables may  not be  removed  if your  shell does  not support  local
+# scopes.
+#
+# The “$psl_local” is not removed because it is marked read-only.
+#
+# psl_unload
 psl_unload()
 {
 	unset -f \
@@ -672,6 +684,5 @@ psl_unload()
 	unset -v \
 		PSL_LOADED \
 		_PSL_LOG_LEVEL \
-		psl \
-		psl_local
+		psl
 }
