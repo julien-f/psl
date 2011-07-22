@@ -60,161 +60,6 @@ PSL_LOADED=1
 
 
 ########################################
-# Core commands
-########################################
-
-# Runs  a command silently,  i.e.  redirects  its standard  and error  output to
-# “/dev/null”.
-#
-# psl_silence COMMAND [ARG...]
-psl_silence()
-{
-	"$@" 2> /dev/null >&2
-}
-
-
-########################################
-# Features detection
-########################################
-
-# Checks whether the shell has a given command.
-#
-# psl_has_command COMMAND
-psl_has_command()
-{
-	psl_silence type "$@"
-}
-
-# Helper function for “psl_has_feature()”.
-_psl_has_feature_helper()
-{
-	(eval "_psl_has_feature=$1")
-}
-
-# Checks whether the shell has a given features (variable substitutions, …).
-#
-# The code  passed must  be assignable to  a variable,  so you must  use command
-# substitution if you want to test a command.
-#
-# psl_has_feature CODE
-psl_has_feature()
-{
-	# We cannot use directly the “psl_silence()” function on the code because it
-	# does not know how to run command in a subshell.
-	#
-	# We cannot either use “eval()” because we do not have any knowledge of what
-	# characters are in “$1” (especially  quotes) so the code may be ill-formed,
-	# consequently we use a helper.
-	psl_silence _psl_has_feature_helper "$1"
-}
-
-
-########################################
-# Compatibility
-########################################
-
-# We  cannot  directly use  the  “local” command  because  it  is not  uniformly
-# used. Instead we  use the variable “$psl_local” to  store the more appropriate
-# command, if none are found, all the variables are declared globally.
-if ! [ "$psl_local" ]
-then
-	if psl_has_command declare
-	then
-		psl_local=declare
-	elif psl_has_command local
-	then
-		psl_local=local
-	elif psl_has_command typeset
-	then
-		psl_local=typeset
-	else
-		psl_local=:
-	fi
-	readonly psl_local
-fi
-
-
-########################################
-# Variable management
-########################################
-
-# Sets “$psl” to the value of a variable.
-#
-# This function allows you to get the  value of a variable which you do not know
-# the name before execution.
-#
-# The behavior is undefined if “$VAR” is not a valid variable name.
-#
-# psl_get_value VAR
-if psl_has_command nameref
-then
-	psl_get_value()
-	{
-		$psl_local _psl_get_value_ref
-
-		nameref _psl_get_value_ref=$1
-
-		psl=$_psl_get_value_ref
-	}
-elif psl_has_feature '${!VAR}'
-then
-	psl_get_value()
-	{
-		$psl_local _psl_get_value_ref
-
-		# ksh does not support (even parsing!)  “${!1}” so to hide the error, we
-		# use this variable.
-		_psl_get_value_ref=$1
-
-		psl=${!_psl_get_value_ref}
-	}
-else
-	psl_get_value()
-	{
-		eval psl=\$$1
-	}
-fi
-
-# Assigns the value of “$psl” to a variable.
-#
-# This function  allows you to assigns  a value to  a variable which you  do not
-# know the name before execution (through another variable).
-#
-# The behavior is undefined if “$VAR” is not a valid variable name.
-#
-# psl_set_value VAR
-if psl_has_command nameref
-then
-	psl_set_value()
-	{
-		$psl_local _psl_set_value_ref
-
-		nameref _psl_set_value_ref=$1
-
-		_psl_set_value_ref=$psl
-	}
-else
-	psl_set_value()
-	{
-		eval $1='$psl'
-	}
-fi
-
-# Saves in “$psl” the raw output, preserving any end-of-lines, of a command into
-# a variable.
-#
-# psl_get_raw_output COMMAND [ARG...]
-psl_get_raw_output()
-{
-	# We add a dummy character which will protect a possible end-of-line.
-	psl=$("$@"; printf _)
-
-	# Removes the dummy character.
-	psl=${psl%_}
-}
-
-
-########################################
 # Input/output
 ########################################
 
@@ -329,23 +174,175 @@ psl_fatal()
 
 
 ########################################
-# String operations
+# Core commands
 ########################################
 
-# This helper  is used because  we really cannot  afford to change the  value of
-# “$IFS” if the “$psl_local” command is not correctly supported.
-_psl_join_helper()
+# Runs  a command silently,  i.e.  redirects  its standard  and error  output to
+# “/dev/null”.
+#
+# psl_silence COMMAND [ARG...]
+psl_silence()
 {
-	shift
-	psl=$*
+	"$@" 2> /dev/null >&2
 }
+
+
+########################################
+# Features detection
+########################################
+
+# Checks whether the shell has a given command.
+#
+# psl_has_command COMMAND
+psl_has_command()
+{
+	psl_silence type "$@"
+}
+
+# Helper function for “psl_has_feature()”.
+_psl_has_feature_helper()
+{
+	(eval "_psl_has_feature=$1")
+}
+
+# Checks whether the shell has a given features (variable substitutions, …).
+#
+# The code  passed must  be assignable to  a variable,  so you must  use command
+# substitution if you want to test a command.
+#
+# psl_has_feature CODE
+psl_has_feature()
+{
+	# We cannot use directly the “psl_silence()” function on the code because it
+	# does not know how to run command in a subshell.
+	#
+	# We cannot either use “eval()” because we do not have any knowledge of what
+	# characters are in “$1” (especially  quotes) so the code may be ill-formed,
+	# consequently we use a helper.
+	psl_silence _psl_has_feature_helper "$1"
+}
+
+
+########################################
+# Compatibility
+########################################
+
+# We  cannot  directly use  the  “local” command  because  it  is not  uniformly
+# used. Instead we  use the variable “$psl_local” to  store the more appropriate
+# command.
+if ! [ "$psl_local" ]
+then
+	if psl_has_command declare
+	then
+		psl_local=declare
+	elif psl_has_command local
+	then
+		psl_local=local
+	elif psl_has_command typeset
+	then
+		psl_local=typeset
+	else
+		psl_local=:
+		psl_warning 'PSL does not support local variables for your shell, you may experience some problems.'
+	fi
+	readonly psl_local
+fi
+
+
+########################################
+# Variable management
+########################################
+
+# Sets “$psl” to the value of a variable.
+#
+# This function allows you to get the  value of a variable which you do not know
+# the name before execution.
+#
+# The behavior is undefined if “$VAR” is not a valid variable name.
+#
+# psl_get_value VAR
+if psl_has_command nameref
+then
+	psl_get_value()
+	{
+		$psl_local _psl_get_value_ref
+
+		nameref _psl_get_value_ref=$1
+
+		psl=$_psl_get_value_ref
+	}
+elif psl_has_feature '${!VAR}'
+then
+	psl_get_value()
+	{
+		$psl_local _psl_get_value_ref
+
+		# ksh does not support (even parsing!)  “${!1}” so to hide the error, we
+		# use this variable.
+		_psl_get_value_ref=$1
+
+		psl=${!_psl_get_value_ref}
+	}
+else
+	psl_get_value()
+	{
+		eval psl=\$$1
+	}
+fi
+
+# Assigns the value of “$psl” to a variable.
+#
+# This function  allows you to assigns  a value to  a variable which you  do not
+# know the name before execution (through another variable).
+#
+# The behavior is undefined if “$VAR” is not a valid variable name.
+#
+# psl_set_value VAR
+if psl_has_command nameref
+then
+	psl_set_value()
+	{
+		$psl_local _psl_set_value_ref
+
+		nameref _psl_set_value_ref=$1
+
+		_psl_set_value_ref=$psl
+	}
+else
+	psl_set_value()
+	{
+		eval $1='$psl'
+	}
+fi
+
+# Saves in “$psl” the raw output, preserving any end-of-lines, of a command into
+# a variable.
+#
+# psl_get_raw_output COMMAND [ARG...]
+psl_get_raw_output()
+{
+	# We add a dummy character which will protect a possible end-of-line.
+	psl=$("$@"; printf _)
+
+	# Removes the dummy character.
+	psl=${psl%_}
+}
+
+
+########################################
+# String operations
+########################################
 
 # Joins strings with a given character separator.
 #
 # psl_join SEP STRING...
 psl_join()
 {
-	IFS=$1 _psl_join_helper "$@"
+	$psl_local IFS
+
+	IFS=$1
+
+	psl=$*
 }
 
 # Checks whether “$psl” matches a given pattern.
@@ -562,7 +559,8 @@ fi
 # Path manipulation
 ########################################
 
-# Faster equivalent to the “basename” command.
+# Faster equivalent to  the “basename” command (6/15 times  with Bash/Dash on my
+# PC).
 #
 # This function  does not manage the  suffix removal (because it  is trivial but
 # costly if we do it unnecessarily).
@@ -583,7 +581,8 @@ psl_basename()
 	psl=${psl##*/}
 }
 
-# Faster equivalent to the “dirname” command.
+# Faster equivalent to  the “dirname” command (20/18 times  with Bash/Dash on my
+# PC).
 #
 # This function does not handle any options.
 #
@@ -595,10 +594,10 @@ psl_dirname()
 	# Empty special case.
 	[ "$psl" ] || { psl=.; return; }
 
+	psl_rtrim /
+
 	_psl_dirname_tmp=$psl
 	psl=${_psl_dirname_tmp%/*}
-
-	psl_rtrim /
 
 	# If no match → there were no directory.
 	[ "$_psl_dirname_tmp" = "$psl" ] && { psl=.; return; }
