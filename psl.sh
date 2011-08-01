@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.3
+# Portable Shell Library v0.2.4
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2011-08-01 - v0.2.4
+# - Two new functions: “psl_unquote()” and “psl_ord()”.
 # 2011-07-22 - v0.2.3
 # - “psl_first_match()”  has been  replaced by  “psl_foreach()” which  is  a bit
 #   trickier to use (at least for the same things) but much more powerful.
@@ -507,6 +509,14 @@ psl_quote()
 	psl="'$psl'"
 }
 
+# Unquotes a string.
+#
+# psl_unquote
+psl_unquote()
+{
+	psl_get_raw_output printf %b "$psl"
+}
+
 # Removes every substring at the beginning of “$psl” which matches “$PATTERN”.
 #
 # psl_ltrim PATTERN
@@ -554,6 +564,14 @@ else
 	psl_warning 'psl_substr: failed pre-requisites'
 fi
 
+# Returns the numeric value of the character in the given encoding.
+#
+# psl_ord
+psl_ord()
+{
+	psl_quote
+	psl=$(printf %u \'"$psl")
+}
 
 ########################################
 # Path manipulation
