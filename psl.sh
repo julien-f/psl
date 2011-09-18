@@ -1,8 +1,12 @@
 ##
-# Portable Shell Library v0.2.4
+# Portable Shell Library v0.2.5
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2011-09-18 - v0.2.5
+# - New   function   “psl_realpath()”    (currently   restricted   to   existing
+#   directories).
+# - “psl_unquote()” and “psl_ord()” are now correctly unloaded.
 # 2011-08-01 - v0.2.4
 # - Two new functions: “psl_unquote()” and “psl_ord()”.
 # 2011-07-22 - v0.2.3
@@ -54,10 +58,7 @@
 # concerns.
 #
 # If you really want to reload it, call “psl_unload()” before.
-if [ "$PSL_LOADED" ]
-then
-	return
-fi
+[ "$PSL_LOADED" ] && return
 PSL_LOADED=1
 
 
@@ -624,6 +625,22 @@ psl_dirname()
 	[ "$psl" ] || { psl=/; return; }
 }
 
+# Finds the real path of a directory.
+#
+# The real path is an absolute path which contains neither “.” nor “..”.
+#
+# psl_realpath
+psl_realpath()
+{
+	$psl_local old OLDPWD
+
+	# Can we rely on OLDPWD?
+	old=${PWD:+"$(pwd)"} && psl_silence cd -P "$psl" || return 1
+
+	psl=$PWD
+
+	cd "$old"
+}
 
 ########################################
 # Utilities
@@ -696,11 +713,14 @@ psl_unload()
 		psl_strstr \
 		psl_subst \
 		psl_quote \
+		psl_unquote \
 		psl_ltrim \
 		psl_rtrim \
 		psl_substr \
+		psl_ord \
 		psl_basename \
 		psl_dirname \
+		psl_realpath \
 		psl_foreach \
 		psl_unload
 
