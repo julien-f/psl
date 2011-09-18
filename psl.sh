@@ -1,8 +1,11 @@
 ##
-# Portable Shell Library v0.2.5
+# Portable Shell Library v0.2.6
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2011-09-18 - v0.2.6
+# - Two new functions: “psl_fast_quote()” and “psl_split_all()”.
+# - Minor correction in “psl_join()”.
 # 2011-09-18 - v0.2.5
 # - New   function   “psl_realpath()”    (currently   restricted   to   existing
 #   directories).
@@ -344,6 +347,7 @@ psl_join()
 	$psl_local IFS
 
 	IFS=$1
+	shift
 
 	psl=$*
 }
@@ -398,13 +402,37 @@ $psl
 EOF
 }
 
+# Prints  a  space-separated   list  of  quoted  fields  of   $psl  splitted  by
+# character(s).
+#
+# The result of this function can be used to set positional parameters:
+#
+#     psl=$(getent passwd root)
+#     eval "set -- $(psl_split_all :)"
+#
+# If DELIMITERS is not supplied, the default value of IFS will be used.
+#
+# psl_split_all [DELIMITERS]
+psl_split_all()
+{
+	(
+		[ $# -eq 1 ] && IFS=$1 || unset -v IFS
+		set -f
+		for psl in $psl
+		do
+			psl_fast_quote
+			psl_print " $psl"
+		done
+	)
+}
+
 # Returns the length of “$psl”.
 #
 # For multibytes encoding,  the result may either be the number  of bytes or the
 # number of characters.
 #
-# Do not use this function to check if “$psl” is null, use the standard “test”
-# command.
+# Do  not use  this  function  to check  if  “$psl” is  null,  use the  standard
+# “[ "$psl" ]” instead.
 #
 # psl_strlen
 if psl_has_feature '${#VAR}'
@@ -500,7 +528,7 @@ else
 	}
 fi
 
-# Quotes a string to be used in the shell.
+# Quotes a string in a POSIX-compatible way.
 #
 # psl_quote
 psl_quote()
@@ -509,6 +537,24 @@ psl_quote()
 
 	psl="'$psl'"
 }
+
+# Quotes a string.
+#
+# Contrary to “psl_quote()” the result may not be usable in another shell.
+#
+# psl_fast_quote
+if psl_has_feature '$(printf %q)'
+then
+	psl_fast_quote()
+	{
+		psl=$(printf %q "$psl")
+	}
+else
+	psl_fast_quote()
+	{
+		psl_quote "$@"
+	}
+fi
 
 # Unquotes a string.
 #
@@ -709,10 +755,12 @@ psl_unload()
 		psl_match \
 		psl_match_re \
 		psl_split \
+		psl_split_all \
 		psl_strlen \
 		psl_strstr \
 		psl_subst \
 		psl_quote \
+		psl_fast_quote \
 		psl_unquote \
 		psl_ltrim \
 		psl_rtrim \
