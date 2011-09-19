@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.6
+# Portable Shell Library v0.2.7
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2011-09-19 - v0.2.7
+# - “psl_ord()” should now work correctly.
 # 2011-09-18 - v0.2.6
 # - Two new functions: “psl_fast_quote()” and “psl_split_all()”.
 # - Minor correction in “psl_join()”.
@@ -616,7 +618,6 @@ fi
 # psl_ord
 psl_ord()
 {
-	psl_quote
 	psl=$(printf %u \'"$psl")
 }
 
