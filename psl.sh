@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.10
+# Portable Shell Library v0.2.11
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2012-05-29 - v0.2.11
+# - Properly works with “set -u”.
 # 2012-05-29 - v0.2.10
 # - Commands should not return false if it is not meaningful.
 # 2012-05-29 - v0.2.9
@@ -101,7 +103,7 @@ psl()
 
 	$func "$@" || return
 
-	[ "$print" ] && psl_print "$psl"
+	[ "${print:-}" ] && psl_print "$psl"
 
 	# Prevents from returning false.
 	:
@@ -288,7 +290,7 @@ psl_has_feature()
 # We  cannot  directly use  the  “local” command  because  it  is not  uniformly
 # used. Instead we  use the variable “$psl_local” to  store the more appropriate
 # command.
-if ! [ "$psl_local" ]
+if ! [ "${psl_local:-}" ]
 then
 	if psl_has_command declare
 	then
