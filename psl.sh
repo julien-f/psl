@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.7
+# Portable Shell Library v0.2.9
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2012-05-29 - v0.2.9
+# - New function “psl_which()” which locates a command.
 # 2012-05-29 - v0.2.8
 # - New function “psl_protect()” which prevents paths from being recognized as
 #   options.
@@ -665,7 +667,7 @@ psl_ord()
 # This function  does not manage the  suffix removal (because it  is trivial but
 # costly if we do it unnecessarily).
 #
-# psl_basename
+# psl=PATH; psl_basename; psl_println "$psl"
 psl_basename()
 {
 	# Empty parameter → empty result.
@@ -686,7 +688,7 @@ psl_basename()
 #
 # This function does not handle any options.
 #
-# psl_dirname
+# psl=PATH; psl_dirname; psl_println "$psl"
 psl_dirname()
 {
 	$psl_local _psl_dirname_tmp
@@ -711,7 +713,7 @@ psl_dirname()
 # The real path is an absolute path which contains neither “.” nor “..” nor
 # symbolic links.
 #
-# psl_realpath
+# psl=PATH; psl_realpath && psl_println "$psl"
 psl_realpath()
 {
 	$psl_local old OLDPWD
@@ -733,10 +735,39 @@ psl_realpath()
 #
 # This is done by prepending the path with “./” if it starts with a dash.
 #
-# psl_protect
+# psl=PATH; psl_protect; psl_println "$psl"
 psl_protect()
 {
 	[ "x$(printf '%c' "$psl")" = x- ] && psl=./$psl
+}
+
+# Locates a command.
+#
+# If the path contains a slash, “$PATH” is ignored.
+#
+# psl=PATH; psl_which && psl_println "$psl"
+psl_which()
+{
+	$psl_local dir
+
+	# Contains a slash, do not look in $PATH.
+	if psl_match '*/*'
+	then
+		[ -x "$psl" ]
+		return
+	fi
+
+	eval "set -- $(psl=$PATH; psl_split_all :)"
+	for dir
+	do
+		if [ -x "$dir/$psl" ]
+		then
+			psl=$dir/$psl
+			return
+		fi
+	done
+
+	return 1
 }
 
 ########################################
@@ -822,6 +853,7 @@ psl_unload()
 		psl_dirname \
 		psl_realpath \
 		psl_protect \
+		psl_which \
 		psl_foreach \
 		psl_unload
 
