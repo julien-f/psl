@@ -3,6 +3,11 @@
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2012-05-29 - v0.2.8
+# - New function “psl_protect()” which prevents paths from being recognized as
+#   options.
+# - “psl_realpath()” works with files.
+# - New function “psl()” which may ease the use of PSL for trivial operations.
 # 2011-09-19 - v0.2.7
 # - “psl_ord()” should now work correctly.
 # 2011-09-18 - v0.2.6
@@ -66,6 +71,35 @@
 [ "$PSL_LOADED" ] && return
 PSL_LOADED=1
 
+# Generic helper.
+#
+# psl [-v VALUE] [-p] FUNC [ARGUMENT]…
+psl()
+{
+	$psl_local psl func print
+
+	while :
+	do
+		case "$1" in
+			-v)
+				psl=$2
+				shift;;
+			-p)
+				print=1;;
+			*)
+				break
+		esac
+		shift
+	done
+
+	func=psl_$1
+	shift
+
+	$func "$@"
+
+	[ "$print" ] && psl_print "$psl"
+}
+
 
 ########################################
 # Input/output
@@ -92,7 +126,7 @@ psl_println()
 # psl_readln
 psl_readln()
 {
-	IFS= read -r -- psl
+	IFS= read -r psl
 }
 
 
@@ -399,7 +433,7 @@ psl_split()
 	_psl_split_IFS="$1"
 	shift
 
-	IFS="$_psl_split_IFS" read -r -- "$@" <<EOF
+	IFS="$_psl_split_IFS" read -r "$@" <<EOF
 $psl
 EOF
 }
@@ -672,21 +706,37 @@ psl_dirname()
 	[ "$psl" ] || { psl=/; return; }
 }
 
-# Finds the real path of a directory.
+# Finds the real path of a file.
 #
-# The real path is an absolute path which contains neither “.” nor “..”.
+# The real path is an absolute path which contains neither “.” nor “..” nor
+# symbolic links.
 #
 # psl_realpath
 psl_realpath()
 {
 	$psl_local old OLDPWD
 
-	# Can we rely on OLDPWD?
-	old=${PWD:+"$(pwd)"} && psl_silence cd -P "$psl" || return 1
+	old=${PWD:+"$(pwd)"} || return 1
 
-	psl=$PWD
+	psl_protect
 
-	cd "$old"
+	if psl_silence cd -P "$psl";
+	then
+		psl=$PWD
+		cd "$old"
+	else
+		psl_get_raw_output perl -e 'use Cwd q(abs_path); print abs_path($ARGV[0])' -- "$psl"
+	fi
+}
+
+# Prevents a path from being interpreted as an option.
+#
+# This is done by prepending the path with “./” if it starts with a dash.
+#
+# psl_protect
+psl_protect()
+{
+	[ "x$(printf '%c' "$psl")" = x- ] && psl=./$psl
 }
 
 ########################################
@@ -734,6 +784,7 @@ psl_foreach()
 psl_unload()
 {
 	unset -f \
+		psl \
 		psl_silence \
 		psl_has_command \
 		_psl_has_feature_helper \
@@ -770,6 +821,7 @@ psl_unload()
 		psl_basename \
 		psl_dirname \
 		psl_realpath \
+		psl_protect \
 		psl_foreach \
 		psl_unload
 
