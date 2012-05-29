@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.9
+# Portable Shell Library v0.2.10
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2012-05-29 - v0.2.10
+# - Commands should not return false if it is not meaningful.
 # 2012-05-29 - v0.2.9
 # - New function “psl_which()” which locates a command.
 # 2012-05-29 - v0.2.8
@@ -97,9 +99,12 @@ psl()
 	func=psl_$1
 	shift
 
-	$func "$@"
+	$func "$@" || return
 
 	[ "$print" ] && psl_print "$psl"
+
+	# Prevents from returning false.
+	:
 }
 
 
@@ -188,6 +193,9 @@ _psl_log()
 psl_debug()
 {
 	[ $_PSL_LOG_LEVEL -eq 3 ] && _psl_log Debug "$@"
+
+	# Prevents from returning false.
+	:
 }
 
 # This should be used to inform the user of something.
@@ -196,6 +204,9 @@ psl_debug()
 psl_notice()
 {
 	[ $_PSL_LOG_LEVEL -gt 1 ] && _psl_log Notice "$@"
+
+	# Prevents from returning false.
+	:
 }
 
 # This should be used to inform the user that something bad happened.
@@ -204,6 +215,9 @@ psl_notice()
 psl_warning()
 {
 	[ $_PSL_LOG_LEVEL -gt 0 ] && _psl_log Warning "$@"
+
+	# Prevents from returning false.
+	:
 }
 
 # This should be used to inform the user that something fatal happened.
@@ -739,6 +753,9 @@ psl_realpath()
 psl_protect()
 {
 	[ "x$(printf '%c' "$psl")" = x- ] && psl=./$psl
+
+	# Prevents from returning false.
+	:
 }
 
 # Locates a command.
