@@ -1,8 +1,12 @@
 ##
-# Portable Shell Library v0.2.12
+# Portable Shell Library v0.2.13
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2012-05-30 - v0.2.13
+# - New function “psl_readlink()”.
+# - “psl_realpath()” now uses more efficient program than Perl if available.
+# - “psl_get_raw_output()” now returns the return value of the run command.
 # 2012-05-30 - v0.2.12
 # - Major performance improvement in “psl_which()” (10 to 20 times faster).
 # 2012-05-29 - v0.2.11
@@ -380,14 +384,21 @@ fi
 # Saves in “$psl” the raw output, preserving any end-of-lines, of a command into
 # a variable.
 #
+# This function returns the return value of COMMAND.
+#
 # psl_get_raw_output COMMAND [ARG...]
 psl_get_raw_output()
 {
+	$psl_local ret
+
 	# We add a dummy character which will protect a possible end-of-line.
-	psl=$("$@"; printf _)
+	psl=$("$@"; ret=$?; printf _; return $ret)
+	ret=$?
 
 	# Removes the dummy character.
 	psl=${psl%_}
+
+	return $ret
 }
 
 
@@ -726,6 +737,36 @@ psl_dirname()
 	[ "$psl" ] || { psl=/; return; }
 }
 
+# Helper for “psl_realpath()” which works with files.
+#
+# psl=PATH; _psl_realpath_helper && psl_println "$psl"
+if psl_has_command readlink
+then
+	_psl_realpath_helper()
+	{
+		psl_protect
+		psl_get_raw_output readlink --canonicalize --no-newline "$psl"
+	}
+elif psl_has_command realpath
+then
+	_psl_realpath_helper()
+	{
+		psl_protect
+		psl=$(realpath "$psl"; psl_print _);
+
+		# Removes the trailing newline and underscore.
+		psl=${psl%??}
+	}
+elif psl_has_command perl
+then
+	_psl_realpath_helper()
+	{
+		psl_get_raw_output perl -e 'use Cwd q(abs_path); print abs_path($ARGV[0])' -- "$psl"
+	}
+else
+	psl_warning 'psl_realpath: failed pre-requisites'
+fi
+
 # Finds the real path of a file.
 #
 # The real path is an absolute path which contains neither “.” nor “..” nor
@@ -745,9 +786,29 @@ psl_realpath()
 		psl=$PWD
 		cd "$old"
 	else
-		psl_get_raw_output perl -e 'use Cwd q(abs_path); print abs_path($ARGV[0])' -- "$psl"
+		_psl_realpath_helper
 	fi
 }
+
+# Read the target path of a symbolic link.
+#
+# psl=SYMLINK; psl_readlink && psl_println "$psl"
+if psl_has_command readlink
+then
+	psl_readlink()
+	{
+		psl_protect
+		psl_get_raw_output readlink --no-newline "$psl"
+	}
+elif psl_has_command perl
+then
+	psl_readlink()
+	{
+		psl_get_raw_output perl -e 'print readlink($ARGV[0])' -- "$psl"
+	}
+else
+	psl_warning 'psl_readlink: failed pre-requisites'
+fi
 
 # Prevents a path from being interpreted as an option.
 #
@@ -875,7 +936,9 @@ psl_unload()
 		psl_ord \
 		psl_basename \
 		psl_dirname \
+		_psl_realpath_helper \
 		psl_realpath \
+		psl_readlink \
 		psl_protect \
 		psl_which \
 		psl_foreach \
