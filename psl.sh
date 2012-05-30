@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.11
+# Portable Shell Library v0.2.12
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2012-05-30 - v0.2.12
+# - Major performance improvement in “psl_which()” (10 to 20 times faster).
 # 2012-05-29 - v0.2.11
 # - Properly works with “set -u”.
 # 2012-05-29 - v0.2.10
@@ -767,7 +769,7 @@ psl_protect()
 # psl=PATH; psl_which && psl_println "$psl"
 psl_which()
 {
-	$psl_local dir
+	$psl_local tmp dir
 
 	# Contains a slash, do not look in $PATH.
 	if psl_match '*/*'
@@ -776,9 +778,12 @@ psl_which()
 		return
 	fi
 
-	eval "set -- $(psl=$PATH; psl_split_all :)"
-	for dir
+	tmp=$PATH
+	while [ "$tmp" ]
 	do
+		dir=${tmp%%:*}
+		tmp=${tmp#*:}
+
 		if [ -x "$dir/$psl" ]
 		then
 			psl=$dir/$psl
