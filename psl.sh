@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.13
+# Portable Shell Library v0.2.14
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2012-05-30 - v0.2.14
+# - More “set -u“ compatibility fixes.
 # 2012-05-30 - v0.2.13
 # - New function “psl_readlink()”.
 # - “psl_realpath()” now uses more efficient program than Perl if available.
@@ -80,7 +82,7 @@
 # concerns.
 #
 # If you really want to reload it, call “psl_unload()” before.
-[ "$PSL_LOADED" ] && return
+[ "${PSL_LOADED:-}" ] && return
 PSL_LOADED=1
 
 # Generic helper.
@@ -180,7 +182,7 @@ psl_get_log_level()
 }
 
 # Runs it a first time to ensure that “_PSL_LOG_LEVEL” has a correct value.
-psl_set_log_level "$_PSL_LOG_LEVEL"
+psl_set_log_level "${_PSL_LOG_LEVEL:-}"
 
 # Logs a message.
 #
