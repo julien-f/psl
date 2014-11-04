@@ -110,7 +110,7 @@ psl() {
 
 	$func "$@" || return
 
-	[ "${print:-}" ] && psl_print "$psl"
+	[ "${print:-}" ] && psl_println "$psl"
 
 	# Prevents from returning false.
 	:
