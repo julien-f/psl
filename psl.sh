@@ -88,8 +88,7 @@ PSL_LOADED=1
 # Generic helper.
 #
 # psl [-v VALUE] [-p] FUNC [ARGUMENT]…
-psl()
-{
+psl() {
 	$psl_local psl func print
 
 	while :
@@ -125,24 +124,21 @@ psl()
 # Prints each arguments on the standard output.
 #
 # psl_print STRING...
-psl_print()
-{
+psl_print() {
 	printf '%s' "$@"
 }
 
 # Prints each arguments followed by a new line on the standard output.
 #
 # psl_println STRING...
-psl_println()
-{
+psl_println() {
 	printf '%s\n' "$@"
 }
 
 # Reads a line from the standard input (the end of line, if any, is discarded).
 #
 # psl_readln
-psl_readln()
-{
+psl_readln() {
 	IFS= read -r psl
 }
 
@@ -162,8 +158,7 @@ psl_readln()
 # If another value is passed, the default level is selected.
 #
 # psl_set_log_level LEVEL
-psl_set_log_level()
-{
+psl_set_log_level() {
 	case "$1" in
 		[0-3])
 			_PSL_LOG_LEVEL=$1
@@ -176,8 +171,7 @@ psl_set_log_level()
 # Sets “$psl” to the current log level.
 #
 # See “psl_set_log_level()” for more information.
-psl_get_log_level()
-{
+psl_get_log_level() {
 	psl=$_PSL_LOG_LEVEL
 }
 
@@ -191,8 +185,7 @@ psl_set_log_level "${_PSL_LOG_LEVEL:-}"
 # with one of your own.
 #
 # _psl_log LEVEL MESSAGE...
-_psl_log()
-{
+_psl_log() {
 	shift
 	psl_println "$@" >&2
 }
@@ -200,8 +193,7 @@ _psl_log()
 # This should be used for programming purpose.
 #
 # psl_debug MESSAGE...
-psl_debug()
-{
+psl_debug() {
 	[ $_PSL_LOG_LEVEL -eq 3 ] && _psl_log Debug "$@"
 
 	# Prevents from returning false.
@@ -211,8 +203,7 @@ psl_debug()
 # This should be used to inform the user of something.
 #
 # psl_notice MESSAGE...
-psl_notice()
-{
+psl_notice() {
 	[ $_PSL_LOG_LEVEL -gt 1 ] && _psl_log Notice "$@"
 
 	# Prevents from returning false.
@@ -222,8 +213,7 @@ psl_notice()
 # This should be used to inform the user that something bad happened.
 #
 # psl_warning MESSAGE...
-psl_warning()
-{
+psl_warning() {
 	[ $_PSL_LOG_LEVEL -gt 0 ] && _psl_log Warning "$@"
 
 	# Prevents from returning false.
@@ -234,8 +224,7 @@ psl_warning()
 # This function stops the script.
 #
 # psl_fatal MESSAGE...
-psl_fatal()
-{
+psl_fatal() {
 	_psl_log Fatal "$@"
 	exit 1
 }
@@ -249,8 +238,7 @@ psl_fatal()
 # “/dev/null”.
 #
 # psl_silence COMMAND [ARG...]
-psl_silence()
-{
+psl_silence() {
 	"$@" 2> /dev/null >&2
 }
 
@@ -262,14 +250,12 @@ psl_silence()
 # Checks whether the shell has a given command.
 #
 # psl_has_command COMMAND
-psl_has_command()
-{
+psl_has_command() {
 	psl_silence type "$@"
 }
 
 # Helper function for “psl_has_feature()”.
-_psl_has_feature_helper()
-{
+_psl_has_feature_helper() {
 	(eval "_psl_has_feature=$1")
 }
 
@@ -279,8 +265,7 @@ _psl_has_feature_helper()
 # substitution if you want to test a command.
 #
 # psl_has_feature CODE
-psl_has_feature()
-{
+psl_has_feature() {
 	# We cannot use directly the “psl_silence()” function on the code because it
 	# does not know how to run command in a subshell.
 	#
@@ -389,8 +374,7 @@ fi
 # This function returns the return value of COMMAND.
 #
 # psl_get_raw_output COMMAND [ARG...]
-psl_get_raw_output()
-{
+psl_get_raw_output() {
 	$psl_local ret
 
 	# We add a dummy character which will protect a possible end-of-line.
@@ -411,8 +395,7 @@ psl_get_raw_output()
 # Joins strings with a given character separator.
 #
 # psl_join SEP STRING...
-psl_join()
-{
+psl_join() {
 	$psl_local IFS
 
 	IFS=$1
@@ -424,8 +407,7 @@ psl_join()
 # Checks whether “$psl” matches a given pattern.
 #
 # psl_match PATTERN
-psl_match()
-{
+psl_match() {
 	case "$psl" in
 		$1)
 			;;
@@ -459,8 +441,7 @@ fi
 #   Due to the implementation, the variables used cannot be “_psl_split_IFS”.
 #
 # psl_split DELIMITERS @FIELD...
-psl_split()
-{
+psl_split() {
 	$psl_local _psl_split_IFS
 
 	_psl_split_IFS="$1"
@@ -482,8 +463,7 @@ EOF
 # If DELIMITERS is not supplied, the default value of IFS will be used.
 #
 # psl_split_all [DELIMITERS]
-psl_split_all()
-{
+psl_split_all() {
 	(
 		[ $# -eq 1 ] && IFS=$1 || unset -v IFS
 		set -f
@@ -529,8 +509,7 @@ fi
 # Checks whether “$NEEDLE” is in “$psl”.
 #
 # psl_strstr NEEDLE
-psl_strstr()
-{
+psl_strstr() {
 	# It  is  difficult  to  use  “psl_match()”  because  “NEEDLE”  may  contain
 	# metacharacters.
 	case "$psl" in
@@ -600,8 +579,7 @@ fi
 # Quotes a string in a POSIX-compatible way.
 #
 # psl_quote
-psl_quote()
-{
+psl_quote() {
 	psl_subst -a \' "'\\''"
 
 	psl="'$psl'"
@@ -628,16 +606,14 @@ fi
 # Unquotes a string.
 #
 # psl_unquote
-psl_unquote()
-{
+psl_unquote() {
 	psl_get_raw_output printf %b "$psl"
 }
 
 # Removes every substring at the beginning of “$psl” which matches “$PATTERN”.
 #
 # psl_ltrim PATTERN
-psl_ltrim()
-{
+psl_ltrim() {
 	$psl_local _psl_ltrim_tmp
 
 	while _psl_ltrim_tmp=${psl#$1}; [ "$_psl_ltrim_tmp" != "$psl" ]
@@ -649,8 +625,7 @@ psl_ltrim()
 # Removes every substring at the end of “$psl” which matches “$PATTERN”.
 #
 # psl_rtrim PATTERN
-psl_rtrim()
-{
+psl_rtrim() {
 	$psl_local _psl_rtrim_tmp
 
 	while _psl_rtrim_tmp=${psl%$1}; [ "$_psl_rtrim_tmp" != "$psl" ]
@@ -683,8 +658,7 @@ fi
 # Returns the numeric value of the character in the given encoding.
 #
 # psl_ord
-psl_ord()
-{
+psl_ord() {
 	psl=$(printf %u \'"$psl")
 }
 
@@ -699,8 +673,7 @@ psl_ord()
 # costly if we do it unnecessarily).
 #
 # psl=PATH; psl_basename; psl_println "$psl"
-psl_basename()
-{
+psl_basename() {
 	# Empty parameter → empty result.
 	[ "$psl" ] || return
 
@@ -720,8 +693,7 @@ psl_basename()
 # This function does not handle any options.
 #
 # psl=PATH; psl_dirname; psl_println "$psl"
-psl_dirname()
-{
+psl_dirname() {
 	$psl_local _psl_dirname_tmp
 
 	# Empty special case.
@@ -775,8 +747,7 @@ fi
 # symbolic links.
 #
 # psl=PATH; psl_realpath && psl_println "$psl"
-psl_realpath()
-{
+psl_realpath() {
 	$psl_local old OLDPWD
 
 	old=${PWD:+"$(pwd)"} || return 1
@@ -817,8 +788,7 @@ fi
 # This is done by prepending the path with “./” if it starts with a dash.
 #
 # psl=PATH; psl_protect; psl_println "$psl"
-psl_protect()
-{
+psl_protect() {
 	[ "x$(printf '%c' "$psl")" = x- ] && psl=./$psl
 
 	# Prevents from returning false.
@@ -830,8 +800,7 @@ psl_protect()
 # If the path contains a slash, “$PATH” is ignored.
 #
 # psl=PATH; psl_which && psl_println "$psl"
-psl_which()
-{
+psl_which() {
 	$psl_local tmp dir
 
 	# Contains a slash, do not look in $PATH.
@@ -878,8 +847,7 @@ psl_which()
 #   psl_foreach '! psl_match "*.txt"' *
 #
 # psl_foreach COMMAND ENTRY...
-psl_foreach()
-{
+psl_foreach() {
 	$psl_local _psl_foreach_command
 
 	_psl_foreach_command=$1
@@ -899,8 +867,7 @@ psl_foreach()
 # The “$psl_local” is not removed because it is marked read-only.
 #
 # psl_unload
-psl_unload()
-{
+psl_unload() {
 	unset -f \
 		psl \
 		psl_silence \
