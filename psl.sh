@@ -1,8 +1,12 @@
 ##
-# Portable Shell Library v0.2.14
+# Portable Shell Library v0.2.15
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2014-11-04 - v0.2.15
+# - Minor style update.
+# - “psl_count()”, “psl_first()”, “psl_last()” & “psl_nth()”.
+# - “psl()” now prints with a new line.
 # 2012-05-30 - v0.2.14
 # - More “set -u“ compatibility fixes.
 # 2012-05-30 - v0.2.13
