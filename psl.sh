@@ -1,8 +1,10 @@
 ##
-# Portable Shell Library v0.2.15
+# Portable Shell Library v0.2.16
 #
 # Julien Fontanet <julien.fontanet@isonoe.net>
 #
+# 2014-11-04 - v0.2.16
+# - “psl()” automatically print “$psl” if necessary.
 # 2014-11-04 - v0.2.15
 # - Minor style update.
 # - “psl_count()”, “psl_first()”, “psl_last()” & “psl_nth()”.
@@ -91,9 +93,9 @@ PSL_LOADED=1
 
 # Generic helper.
 #
-# psl [-v VALUE] [-p] FUNC [ARGUMENT]…
+# psl [-v VALUE] FUNC [ARGUMENT]…
 psl() {
-	$psl_local psl func print
+	$psl_local psl func
 
 	while :
 	do
@@ -101,8 +103,6 @@ psl() {
 			-v)
 				psl=$2
 				shift;;
-			-p)
-				print=1;;
 			*)
 				break
 		esac
@@ -114,7 +114,7 @@ psl() {
 
 	$func "$@" || return
 
-	[ "${print:-}" ] && psl_println "$psl"
+	[ "${psl:-}" ] && psl_println "$psl"
 
 	# Prevents from returning false.
 	:
