@@ -118,6 +118,51 @@ psl() {
 
 
 ########################################
+# Functional
+########################################
+
+# Sets $psl to the number of arguments.
+#
+# psl_count *
+psl_count() {
+	psl=$#
+}
+
+# Sets $psl to the the first arguments.
+#
+# psl_first *
+psl_first() {
+	psl=$1
+}
+
+# Sets $psl to the the last arguments.
+#
+# psl_last *
+psl_last() {
+	shift $(($# - 1))
+	psl=$1
+}
+
+# Sets $psl to the the value of the `n`-th arguments.
+#
+# If `n` is negative, it will be added to the number of
+# arguments.
+#
+# Note: arguments are counted from 0.
+#
+# psl_nth <n> *
+psl_nth() {
+	if [[ "$1" -lt 0 ]]
+	then
+		shift $(($1 + $#))
+	else
+		shift $(($1 + 1))
+	fi
+
+	psl=$1
+}
+
+########################################
 # Input/output
 ########################################
 
@@ -870,6 +915,10 @@ psl_foreach() {
 psl_unload() {
 	unset -f \
 		psl \
+		psl_count \
+		psl_first \
+		psl_last \
+		psl_nth \
 		psl_silence \
 		psl_has_command \
 		_psl_has_feature_helper \
